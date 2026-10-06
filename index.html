@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ujian Cadangan</title>
+<style>
+:root {
+  --primary: #2563eb; --primary-dark: #1d4ed8; --danger: #dc2626; --success: #16a34a;
+  --bg: #f4f6fb; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --text-muted: #64748b;
+}
+* { box-sizing: border-box; }
+body { margin:0; font-family:'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+.container { max-width:480px; margin:40px auto; padding:0 16px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+h1,h2,h3 { margin-top:0; }
+.subtitle { color:var(--text-muted); margin-top:-8px; margin-bottom:20px; }
+label { display:block; font-weight:600; margin:14px 0 6px; font-size:14px; }
+input,select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:6px; font-size:15px; font-family:inherit; }
+button { display:inline-block; background:var(--primary); color:#fff; border:none; padding:10px 18px; border-radius:6px; font-size:15px; cursor:pointer; font-weight:600; }
+button:hover { background:var(--primary-dark); }
+button:disabled { opacity:.5; cursor:not-allowed; }
+button.success { background:var(--success); }
+button.secondary { background:#64748b; }
+.error-box { background:#fef2f2; color:var(--danger); border:1px solid #fecaca; padding:10px 14px; border-radius:6px; margin-top:14px; font-size:14px; display:none; white-space:pre-line; }
+.error-box.show { display:block; }
+.warn-box { background:#fffbeb; color:#92400e; border:1px solid #fde68a; padding:10px 14px; border-radius:6px; margin-top:14px; font-size:13px; }
+.muted { color:var(--text-muted); font-size:13px; }
+
+.exam-top { background:#1e293b; color:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:10; }
+#timer { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+#timer.low { color:#fca5a5; }
+.layout { display:flex; gap:20px; max-width:1000px; margin:20px auto; padding:0 16px; align-items:flex-start; }
+.nav-panel { width:220px; flex-shrink:0; position:sticky; top:70px; }
+.grid-nomor { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:10px; }
+.grid-nomor button { background:#e2e8f0; color:#1e293b; font-weight:700; padding:8px 0; border-radius:6px; font-size:13px; }
+.grid-nomor button.terjawab { background:#bbf7d0; color:#166534; }
+.grid-nomor button.aktif { outline:3px solid var(--primary); }
+.soal-area { flex:1; min-width:0; }
+.opsi-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer; }
+.opsi-item:hover { background:#f8fafc; }
+.opsi-item input { width:auto; margin-top:3px; }
+.nomor-soal { color:var(--text-muted); font-weight:700; margin-bottom:6px; }
+.footer-nav { display:flex; justify-content:space-between; margin-top:20px; gap:10px; }
+.toast { position:fixed; top:16px; right:16px; left:16px; max-width:360px; margin-left:auto; background:var(--danger); color:#fff; padding:12px 18px; border-radius:8px; font-weight:600; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; visibility:hidden; transform:translateY(-8px); transition:opacity .25s ease, transform .25s ease, visibility .25s; }
+.toast.show { opacity:1; visibility:visible; transform:translateY(0); }
+
+@media (max-width:768px) {
+  .exam-top { padding:10px 14px; }
+  #timer { font-size:18px; }
+  .layout { flex-direction:column; padding:0 10px; margin:12px auto; gap:12px; }
+  .nav-panel { width:100%; position:static; order:-1; }
+  .nav-panel .card { padding:12px 14px; }
+  .nav-panel p.muted { display:none; }
+  .grid-nomor { grid-template-columns:repeat(8,1fr); max-height:130px; overflow-y:auto; }
+  .grid-nomor button { padding:8px 0; font-size:12px; }
+  .soal-area .card { padding:16px; }
+  .opsi-item { padding:12px 10px; font-size:14px; }
+  .footer-nav button { flex:1; padding:12px 8px; font-size:14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== LAYAR LOGIN ========== -->
+<div class="container" id="layarLogin">
+  <div class="card">
+    <h1>🖥️ ATS Infor. 7</h1>
+    <p class="subtitle">Isi data diri untuk mulai mengerjakan.</p>
+    <div id="peringatanBelumSetting" class="warn-box" style="display:none">
+      ⚠️ Google Sheet tujuan belum diatur oleh guru (masih contoh/placeholder). Hasil ujian TIDAK akan tersimpan sampai ini diperbaiki. Lihat README.
+    </div>
+    <form id="formLogin">
+      <label>Nomor Urut Absen</label>
+      <input type="text" id="noAbsen" inputmode="numeric" required autocomplete="off">
+      <label>Nama Lengkap</label>
+      <input type="text" id="nama" required autocomplete="off">
+      <label>Kelas</label>
+      <input type="text" id="kelas" required autocomplete="off">
+      <div style="margin-top:20px">
+        <button type="submit" id="btnMasuk" style="width:100%">Mulai Ujian</button>
+      </div>
+      <div class="error-box" id="errorLogin"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== LAYAR UJIAN ========== -->
+<div id="layarUjian" style="display:none">
+  <div class="exam-top">
+    <div><strong>Ujian (Cadangan)</strong></div>
+    <div id="timer">--:--:--</div>
+  </div>
+  <div class="layout">
+    <div class="nav-panel">
+      <div class="card">
+        <strong>Navigasi Soal</strong>
+        <div class="grid-nomor" id="gridNomor"></div>
+        <div style="margin-top:16px">
+          <button class="success" id="btnSelesai" style="width:100%">Selesai Ujian</button>
+        </div>
+        <p class="muted" style="margin-top:10px">Jangan berpindah tab/aplikasi selama ujian berlangsung. Aktivitas tercatat.</p>
+      </div>
+    </div>
+    <div class="soal-area">
+      <div class="card" id="soalCard"></div>
+      <div class="footer-nav">
+        <button class="secondary" id="btnPrev">← Sebelumnya</button>
+        <button id="btnNext">Berikutnya →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== LAYAR SELESAI ========== -->
+<div class="container" id="layarSelesai" style="display:none">
+  <div class="card" style="text-align:center">
+    <h2 id="judulSelesai">✅ Ujian Selesai</h2>
+    <p>Terima kasih, jawaban Anda telah tersimpan.</p>
+    <p style="font-size:32px; font-weight:800; color:var(--primary)" id="nilaiTampil"></p>
+    <p class="muted">Nilai sementara (soal objektif)</p>
+    <p class="muted" id="statusKirim"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   PENGATURAN — GANTI BAGIAN INI SESUAI KEBUTUHAN
+   ===================================================================== */
+
+// 1) URL Web App Google Apps Script tujuan (lihat README cara membuatnya).
+//    SELAMA MASIH BERTULISKAN "GANTI_DENGAN_URL_APPS_SCRIPT_ANDA", hasil
+//    ujian TIDAK akan terkirim kemana pun.
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPaOOV_Pms8bY-CaZFnILjfPaqQl91_QC6ornmWxNYkRY1K554ev5xx8JFnmqwXWho/exec";
+
+// 2) Nama ujian & durasi (menit)
+const NAMA_UJIAN = "Ujian Cadangan";
+const DURASI_MENIT = 90;
+
+// 3) Acak urutan soal untuk tiap siswa? (true/false)
+const ACAK_SOAL = true;
+const ACAK_OPSI = true;
+
+// 4) ID unik untuk ujian ini — PENTING: ganti jadi teks lain tiap kali Anda
+//    membuat ujian baru dari file ini (copy file ini, ganti ID-nya), supaya
+//    data ujian lama & baru tidak bentrok di localStorage browser siswa.
+const EXAM_ID = "ujian_cadangan_v1";
+
+/* =====================================================================
+   BANK SOAL — 30 Pilihan Ganda + 10 Pilihan Ganda Kompleks
+   Ganti isi "pertanyaan" dan "opsi" dengan soal asli Anda.
+   "kunci" adalah kunci jawaban yang SUDAH DIACAK/DISANDIKAN (base64) agar
+   tidak langsung terbaca polos lewat "Lihat Sumber Laman" oleh siswa.
+   CATATAN JUJUR: ini hanya mempersulit, BUKAN mengamankan 100% — siswa yang
+   sangat paham teknis tetap berpotensi membongkarnya. Beda dengan aplikasi
+   ujian utama (versi server), di sini kunci jawaban tetap ikut terkirim ke
+   browser siswa karena tidak ada server yang menyimpannya secara terpisah.
+   Cara membuat kode tersandi baru: buka halaman ini di Chrome, tekan F12
+   (Console), lalu ketik misalnya encodeKunci([0]) untuk PG (jawaban opsi A)
+   atau encodeKunci([0,2]) untuk PGK (jawaban opsi A dan C), lalu Enter —
+   copy hasilnya ke kolom "kunci" di bawah. Angka 0=A, 1=B, 2=C, dst.
+   ===================================================================== */
+const SOAL = [
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 1 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 2 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 3 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 4 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 5 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 6 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 7 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 8 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 9 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 10 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 11 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 12 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 13 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 14 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 15 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 16 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 17 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 18 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 19 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 20 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 21 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 22 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 23 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 24 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 25 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 26 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 27 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 28 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 29 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pg",
+    "pertanyaan": "Soal PG nomor 30 (ganti dengan soal asli Anda)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D"
+    ],
+    "kunci": "MA==",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 1 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 2 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 3 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 4 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 5 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 6 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 7 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 8 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 9 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  },
+  {
+    "tipe": "pgk",
+    "pertanyaan": "Soal PGK nomor 10 (ganti dengan soal asli Anda, bisa lebih dari 1 jawaban benar)",
+    "opsi": [
+      "Opsi A",
+      "Opsi B",
+      "Opsi C",
+      "Opsi D",
+      "Opsi E"
+    ],
+    "kunci": "MCwy",
+    "bobot": 1
+  }
+];
+
+function encodeKunci(arrIndex) { return btoa(arrIndex.join(',')); }
+function decodeKunci(str) { return atob(str).split(',').map(Number); }
+window.encodeKunci = encodeKunci; // supaya bisa dipanggil dari Console (F12)
+
+/* =====================================================================
+   LOGIKA APLIKASI — tidak perlu diubah
+   ===================================================================== */
+const K = {
+  identitas: EXAM_ID + '_identitas',
+  urutan: EXAM_ID + '_urutan',
+  opsiAcak: EXAM_ID + '_opsiAcak',
+  jawaban: EXAM_ID + '_jawaban',
+  waktuMulai: EXAM_ID + '_waktuMulai',
+  peringatan: EXAM_ID + '_peringatan',
+  selesai: EXAM_ID + '_selesai',
+  nilai: EXAM_ID + '_nilai'
+};
+
+// ---- Fingerprint perangkat: gabungan karakteristik perangkat jadi 1 kode ----
+// Kode ini TIDAK 100% unik per perangkat (lihat catatan di README), tapi jauh
+// lebih sulit dikelabui dibanding localStorage biasa karena tidak hilang
+// walau siswa membersihkan data browser atau pakai mode incognito.
+function buatFingerprintPerangkat() {
+  try {
+    const bagian = [];
+    bagian.push(navigator.userAgent || '');
+    bagian.push(navigator.platform || '');
+    bagian.push(String(navigator.hardwareConcurrency || ''));
+    bagian.push(String(navigator.deviceMemory || ''));
+    bagian.push(screen.width + 'x' + screen.height + 'x' + screen.colorDepth);
+    bagian.push((Intl.DateTimeFormat().resolvedOptions().timeZone) || '');
+    bagian.push(navigator.language || '');
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('fp-' + navigator.userAgent, 2, 2);
+      bagian.push(canvas.toDataURL());
+    } catch (e) { bagian.push('no-canvas'); }
+    try {
+      const canvas2 = document.createElement('canvas');
+      const gl = canvas2.getContext('webgl') || canvas2.getContext('experimental-webgl');
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      bagian.push(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
+      bagian.push(gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL));
+    } catch (e) { bagian.push('no-webgl'); }
+    return hashSederhana(bagian.join('|||'));
+  } catch (e) {
+    return 'unknown-' + Date.now(); // fallback kalau semua API di atas gagal total
+  }
+}
+
+function hashSederhana(str) {
+  // Hash cepat non-kriptografis (djb2) — cukup untuk fingerprint, BUKAN untuk keamanan data.
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return 'dev_' + Math.abs(hash).toString(36) + '_' + str.length;
+}
+
+function dapatkanDeviceId() {
+  let id = localStorage.getItem('device_fp_cache');
+  if (!id) {
+    id = buatFingerprintPerangkat();
+    localStorage.setItem('device_fp_cache', id);
+  }
+  return id;
+}
+
+// Cek ke Google Sheet apakah examId+noAbsen ATAU examId+deviceId ini sudah
+// pernah submit sebelumnya (dan belum di-reset guru). Fail-open kalau jaringan
+// bermasalah/URL belum diatur — supaya satu gangguan jaringan tidak memblokir
+// semua siswa pada hari-H.
+async function cekSudahMengerjakan(noAbsen, deviceId) {
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.indexOf('GANTI_DENGAN') === 0) {
+    return { bisaCekOnline: false, sudahMengerjakan: false };
+  }
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+    const url = GOOGLE_SCRIPT_URL + '?action=cek&examId=' + encodeURIComponent(EXAM_ID) +
+      '&noAbsen=' + encodeURIComponent(noAbsen) + '&deviceId=' + encodeURIComponent(deviceId);
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    return { bisaCekOnline: true, sudahMengerjakan: !!data.sudahMengerjakan, alasan: data.alasan || '' };
+  } catch (e) {
+    return { bisaCekOnline: false, sudahMengerjakan: false };
+  }
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let urutanSoal, opsiAcakMap, jawaban, waktuMulai, peringatanCount, indexSekarang = 0, timerInterval, selesaiDikirim = false;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---- Cek apakah sedang melanjutkan sesi yang sudah ada di browser ini ----
+function cekSesiLama() {
+  const identitas = localStorage.getItem(K.identitas);
+  const sudahSelesai = localStorage.getItem(K.selesai);
+  if (identitas && !sudahSelesai) {
+    const data = JSON.parse(identitas);
+    mulaiUjian(data, true);
+  } else if (sudahSelesai) {
+    const nilai = localStorage.getItem(K.nilai);
+    tampilkanSelesai(nilai ? Number(nilai) : null, false, true);
+  }
+}
+
+document.getElementById('formLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    noAbsen: document.getElementById('noAbsen').value.trim(),
+    nama: document.getElementById('nama').value.trim(),
+    kelas: document.getElementById('kelas').value.trim()
+  };
+  if (!data.noAbsen || !data.nama || !data.kelas) return;
+
+  const errBox = document.getElementById('errorLogin');
+  errBox.classList.remove('show');
+  const btn = document.getElementById('btnMasuk');
+  btn.disabled = true;
+  btn.textContent = 'Memeriksa...';
+
+  const deviceId = dapatkanDeviceId();
+  const cek = await cekSudahMengerjakan(data.noAbsen, deviceId);
+
+  btn.disabled = false;
+  btn.textContent = 'Mulai Ujian';
+
+  if (cek.sudahMengerjakan) {
+    const pesan = cek.alasan === 'perangkat'
+      ? 'Perangkat ini terdeteksi sudah pernah dipakai mengerjakan ujian ini. Kalau ini keliru (misalnya ganti siswa di HP yang sama), minta guru untuk reset lewat Google Sheet.'
+      : 'Nomor absen ini sudah pernah menyelesaikan ujian ini sebelumnya. Kalau ini keliru, hubungi guru untuk direset.';
+    errBox.textContent = '⚠️ ' + pesan;
+    errBox.classList.add('show');
+    return;
+  }
+
+  localStorage.setItem(K.identitas, JSON.stringify(data));
+  mulaiUjian(data, false);
+});
+
+function mulaiUjian(identitas, lanjutan) {
+  document.getElementById('layarLogin').style.display = 'none';
+  document.getElementById('layarUjian').style.display = 'block';
+
+  if (lanjutan && localStorage.getItem(K.urutan)) {
+    urutanSoal = JSON.parse(localStorage.getItem(K.urutan));
+    opsiAcakMap = JSON.parse(localStorage.getItem(K.opsiAcak) || '{}');
+    jawaban = JSON.parse(localStorage.getItem(K.jawaban) || '{}');
+    waktuMulai = Number(localStorage.getItem(K.waktuMulai));
+    peringatanCount = Number(localStorage.getItem(K.peringatan) || 0);
+  } else {
+    urutanSoal = ACAK_SOAL ? shuffle(SOAL.map((_, i) => i)) : SOAL.map((_, i) => i);
+    opsiAcakMap = {};
+    if (ACAK_OPSI) {
+      SOAL.forEach((s, i) => {
+        if (s.tipe === 'pg' || s.tipe === 'pgk') opsiAcakMap[i] = shuffle(s.opsi.map((_, oi) => oi));
+      });
+    }
+    jawaban = {};
+    waktuMulai = Date.now();
+    peringatanCount = 0;
+    localStorage.setItem(K.urutan, JSON.stringify(urutanSoal));
+    localStorage.setItem(K.opsiAcak, JSON.stringify(opsiAcakMap));
+    localStorage.setItem(K.jawaban, JSON.stringify(jawaban));
+    localStorage.setItem(K.waktuMulai, String(waktuMulai));
+    localStorage.setItem(K.peringatan, String(peringatanCount));
+  }
+
+  renderGridNomor();
+  renderSoal();
+  mulaiTimer();
+}
+
+function sisaDetikSekarang() {
+  const totalDetik = DURASI_MENIT * 60;
+  const berlalu = Math.floor((Date.now() - waktuMulai) / 1000);
+  return Math.max(0, totalDetik - berlalu);
+}
+
+function mulaiTimer() {
+  updateTimerTampilan();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const sisa = sisaDetikSekarang();
+    updateTimerTampilan();
+    if (sisa <= 0) { clearInterval(timerInterval); selesaikanUjian(true); }
+  }, 1000);
+}
+
+function updateTimerTampilan() {
+  const sisa = sisaDetikSekarang();
+  const jam = Math.floor(sisa / 3600), menit = Math.floor((sisa % 3600) / 60), detik = sisa % 60;
+  const el = document.getElementById('timer');
+  el.textContent = [jam, menit, detik].map(v => String(v).padStart(2, '0')).join(':');
+  el.classList.toggle('low', sisa <= 300);
+}
+
+function renderGridNomor() {
+  const grid = document.getElementById('gridNomor');
+  grid.innerHTML = '';
+  urutanSoal.forEach((soalIdx, i) => {
+    const b = document.createElement('button');
+    b.textContent = i + 1;
+    const j = jawaban[soalIdx];
+    if (j !== undefined && j !== null && j !== '' && !(Array.isArray(j) && j.length === 0)) b.classList.add('terjawab');
+    if (i === indexSekarang) b.classList.add('aktif');
+    b.onclick = () => { indexSekarang = i; renderSoal(); };
+    grid.appendChild(b);
+  });
+}
+
+function renderSoal() {
+  const soalIdx = urutanSoal[indexSekarang];
+  const s = SOAL[soalIdx];
+  const card = document.getElementById('soalCard');
+  let html = `<div class="nomor-soal">Soal ${indexSekarang + 1} dari ${urutanSoal.length}</div>`;
+  html += `<p style="font-size:16px; line-height:1.6">${escapeHtml(s.pertanyaan).replace(/\n/g, '<br>')}</p>`;
+
+  const urutanOpsi = opsiAcakMap[soalIdx] || (s.opsi ? s.opsi.map((_, i) => i) : []);
+
+  if (s.tipe === 'pg') {
+    urutanOpsi.forEach(oi => {
+      const checked = jawaban[soalIdx] === oi ? 'checked' : '';
+      html += `<label class="opsi-item"><input type="radio" name="opsi" value="${oi}" ${checked}> <span>${escapeHtml(s.opsi[oi])}</span></label>`;
+    });
+  } else if (s.tipe === 'pgk') {
+    html += `<p style="background:#eff6ff; color:var(--primary); border:1px solid #bfdbfe; padding:8px 12px; border-radius:6px; font-size:14px; font-weight:600; margin-bottom:12px">📌 Centang semua jawaban yang menurut Anda benar (bisa lebih dari 1).</p>`;
+    const jawabanArr = Array.isArray(jawaban[soalIdx]) ? jawaban[soalIdx] : [];
+    urutanOpsi.forEach(oi => {
+      const checked = jawabanArr.includes(oi) ? 'checked' : '';
+      html += `<label class="opsi-item"><input type="checkbox" name="opsi" value="${oi}" ${checked}> <span>${escapeHtml(s.opsi[oi])}</span></label>`;
+    });
+  }
+  card.innerHTML = html;
+
+  if (s.tipe === 'pg') {
+    document.querySelectorAll('input[name="opsi"]').forEach(inp => {
+      inp.addEventListener('change', () => simpanJawaban(soalIdx, Number(inp.value)));
+    });
+  } else if (s.tipe === 'pgk') {
+    document.querySelectorAll('input[name="opsi"]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const terpilih = Array.from(document.querySelectorAll('input[name="opsi"]:checked')).map(x => Number(x.value));
+        simpanJawaban(soalIdx, terpilih);
+      });
+    });
+  }
+
+  document.getElementById('btnPrev').disabled = indexSekarang === 0;
+  document.getElementById('btnNext').disabled = indexSekarang === urutanSoal.length - 1;
+}
+
+function simpanJawaban(soalIdx, nilai) {
+  jawaban[soalIdx] = nilai;
+  localStorage.setItem(K.jawaban, JSON.stringify(jawaban));
+  renderGridNomor();
+}
+
+document.getElementById('btnPrev').onclick = () => { if (indexSekarang > 0) { indexSekarang--; renderSoal(); } };
+document.getElementById('btnNext').onclick = () => { if (indexSekarang < urutanSoal.length - 1) { indexSekarang++; renderSoal(); } };
+document.getElementById('btnSelesai').onclick = () => {
+  if (confirm('Yakin sudah selesai? Jawaban tidak dapat diubah lagi setelah ini.')) selesaikanUjian(false);
+};
+
+function hitungNilai() {
+  let totalBobot = 0, dapatBobot = 0, jumlahBenar = 0;
+  SOAL.forEach((s, idx) => {
+    totalBobot += s.bobot;
+    const kunciAsli = decodeKunci(s.kunci);
+    const j = jawaban[idx];
+    let benar = false;
+    if (s.tipe === 'pg') {
+      benar = j === kunciAsli[0];
+    } else if (s.tipe === 'pgk') {
+      const a = Array.isArray(j) ? [...j].sort((x, y) => x - y) : [];
+      const b = [...kunciAsli].sort((x, y) => x - y);
+      benar = a.length === b.length && a.every((v, i) => v === b[i]);
+    }
+    if (benar) { dapatBobot += s.bobot; jumlahBenar++; }
+  });
+  const nilai = totalBobot === 0 ? 0 : Math.round((dapatBobot / totalBobot) * 10000) / 100;
+  return { nilai, jumlahBenar, totalSoal: SOAL.length };
+}
+
+async function selesaikanUjian(waktuHabis) {
+  if (selesaiDikirim) return;
+  selesaiDikirim = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  const hasil = hitungNilai();
+  const identitas = JSON.parse(localStorage.getItem(K.identitas));
+  localStorage.setItem(K.selesai, '1');
+  localStorage.setItem(K.nilai, String(hasil.nilai));
+
+  tampilkanSelesai(hasil.nilai, waktuHabis, false);
+
+  const payload = {
+    examId: EXAM_ID,
+    namaUjian: NAMA_UJIAN,
+    noAbsen: identitas.noAbsen,
+    nama: identitas.nama,
+    kelas: identitas.kelas,
+    nilai: hasil.nilai,
+    jumlahBenar: hasil.jumlahBenar,
+    totalSoal: hasil.totalSoal,
+    peringatanPindahTab: peringatanCount,
+    waktuMulai: new Date(waktuMulai).toLocaleString('id-ID'),
+    waktuSelesai: new Date().toLocaleString('id-ID'),
+    waktuHabis: waktuHabis ? 'Ya' : 'Tidak',
+    deviceId: dapatkanDeviceId()
+  };
+  await kirimKeGoogleSheet(payload);
+}
+
+async function kirimKeGoogleSheet(payload) {
+  const statusEl = document.getElementById('statusKirim');
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.indexOf('GANTI_DENGAN') === 0) {
+    statusEl.textContent = '⚠️ Belum terkirim ke Google Sheet (URL belum diatur guru). Simpan screenshot nilai ini sebagai bukti.';
+    statusEl.style.color = 'var(--danger)';
+    return;
+  }
+  try {
+    const formData = new FormData();
+    Object.keys(payload).forEach(k => formData.append(k, payload[k]));
+    await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: formData });
+    // mode 'no-cors' tidak mengizinkan kita membaca respons server, jadi kita
+    // asumsikan terkirim selama tidak ada error jaringan yang dilempar fetch.
+    statusEl.textContent = '✅ Hasil sudah dikirim ke guru.';
+    statusEl.style.color = 'var(--success)';
+  } catch (e) {
+    statusEl.textContent = '⚠️ Gagal mengirim hasil (cek koneksi internet). Simpan screenshot nilai ini, lalu laporkan ke guru.';
+    statusEl.style.color = 'var(--danger)';
+  }
+}
+
+function tampilkanSelesai(nilai, waktuHabis, sudahLamaSelesai) {
+  document.getElementById('layarLogin').style.display = 'none';
+  document.getElementById('layarUjian').style.display = 'none';
+  document.getElementById('layarSelesai').style.display = 'block';
+  document.getElementById('judulSelesai').textContent = waktuHabis ? '⏰ Waktu Habis' : '✅ Ujian Selesai';
+  document.getElementById('nilaiTampil').textContent = nilai != null ? nilai : '-';
+  if (sudahLamaSelesai) {
+    document.getElementById('statusKirim').textContent = 'Anda sudah menyelesaikan ujian ini sebelumnya di perangkat/browser ini.';
+  }
+}
+
+// ---- Deteksi keluar dari halaman (anti-curang sederhana) ----
+document.addEventListener('visibilitychange', () => {
+  if (selesaiDikirim) return;
+  if (document.hidden) {
+    peringatanCount++;
+    localStorage.setItem(K.peringatan, String(peringatanCount));
+  } else if (document.getElementById('layarUjian').style.display !== 'none') {
+    showToast('⚠️ Anda terdeteksi baru saja meninggalkan halaman ujian. Aktivitas ini tercatat.');
+  }
+});
+
+// ---- Peringatan kalau URL Google Sheet belum diatur ----
+if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.indexOf('GANTI_DENGAN') === 0) {
+  document.getElementById('peringatanBelumSetting').style.display = 'block';
+}
+
+cekSesiLama();
+</script>
+</body>
+</html>
